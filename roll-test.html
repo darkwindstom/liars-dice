@@ -143,11 +143,19 @@
       border: 1px dashed rgba(255, 255, 255, 0.1);
       border-radius: 16px;
       display: flex;
-      flex-wrap: wrap;
+      flex-direction: column;
       align-items: center;
       justify-content: center;
-      gap: 40px;
+      gap: 30px;
       padding: 30px;
+    }
+
+    /* 骰子橫列 */
+    .dice-row {
+      display: flex;
+      justify-content: center;
+      gap: 40px;
+      width: 100%;
     }
 
     /* 3D 視界 (Scene) */
@@ -348,25 +356,40 @@
       const count = parseInt(diceCountSelect.value);
       diceBoard.innerHTML = '';
       
-      for (let i = 0; i < count; i++) {
-        const scene = document.createElement('div');
-        scene.className = 'dice-scene';
+      // 定義每一行的骰子數量 (5顆為3+2，6顆為3+3，其他為單行)
+      let rowPatt = [count];
+      if (count === 5) rowPatt = [3, 2];
+      if (count === 6) rowPatt = [3, 3];
+      
+      let dieIndex = 0;
+      rowPatt.forEach(rowSize => {
+        const rowDiv = document.createElement('div');
+        rowDiv.className = 'dice-row';
         
-        const cube = document.createElement('div');
-        cube.className = 'dice-cube';
-        cube.id = `cube-${i}`;
-        
-        // 建立 6 個面並利用本地 image/1.jpg 到 6.jpg 作為背景
-        for (let faceNum = 1; faceNum <= 6; faceNum++) {
-          const face = document.createElement('div');
-          face.className = `dice-face face-${faceNum}`;
-          face.style.backgroundImage = `url('image/${faceNum}.jpg')`;
-          cube.appendChild(face);
+        for (let r = 0; r < rowSize; r++) {
+          const scene = document.createElement('div');
+          scene.className = 'dice-scene';
+          
+          const cube = document.createElement('div');
+          cube.className = 'dice-cube';
+          cube.id = `cube-${dieIndex}`;
+          
+          // 建立 6 個面並利用本地 image/1.jpg 到 6.jpg 作為背景
+          for (let faceNum = 1; faceNum <= 6; faceNum++) {
+            const face = document.createElement('div');
+            face.className = `dice-face face-${faceNum}`;
+            face.style.backgroundImage = `url('image/${faceNum}.jpg')`;
+            cube.appendChild(face);
+          }
+          
+          scene.appendChild(cube);
+          rowDiv.appendChild(scene);
+          dieIndex++;
         }
         
-        scene.appendChild(cube);
-        diceBoard.appendChild(scene);
-      }
+        diceBoard.appendChild(rowDiv);
+      });
+      
       resultText.innerText = '準備就緒，點擊按鈕擲骰！';
     }
 

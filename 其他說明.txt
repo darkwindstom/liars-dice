@@ -1,0 +1,5 @@
+這是一個使用 Google Antigravity 所產生的吹牛遊戲，初步可以實行單人和多人遊玩， 目的是要體驗 vibe coding，過程中所有的程式碼全由 Gemini 3.5 Flash 產生，我只提出我的需求剩下的就交給 Gemini 產生
+運行所要架設的Node.js 也是由 Antigravity 完成，只要下以下指令
+npm run dev
+node server.js (運行於Port 3000)
+理論上 可以在本機執行

@@ -1,0 +1,451 @@
+<!doctype html>
+<html lang="zh-TW">
+  <head>
+    <meta charset="UTF-8" />
+    <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>吹牛大師 Liar's Dice Master - 霓虹酒吧</title>
+    <!-- Google Fonts: Outfit and Noto Sans TC -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+TC:wght@300;400;500;700;900&family=Outfit:wght@300;400;600;800&display=swap" rel="stylesheet">
+  </head>
+  <body>
+    <div id="app">
+      <!-- 遊戲大廳 / 設定選單 -->
+      <div id="lobby-screen" class="screen active">
+        <div class="lobby-card">
+          <div class="brand">
+            <div class="dice-icon-glow">
+              <svg viewBox="0 0 100 100" width="80" height="80">
+                <rect x="10" y="10" width="80" height="80" rx="15" fill="none" stroke="var(--accent-gold)" stroke-width="6" />
+                <circle cx="30" cy="30" r="8" fill="var(--accent-gold)" />
+                <circle cx="70" cy="30" r="8" fill="var(--accent-gold)" />
+                <circle cx="50" cy="50" r="8" fill="var(--accent-gold)" />
+                <circle cx="30" cy="70" r="8" fill="var(--accent-gold)" />
+                <circle cx="70" cy="70" r="8" fill="var(--accent-gold)" />
+              </svg>
+            </div>
+            <h1>吹牛大師</h1>
+            <p class="subtitle">Liar's Dice Master • Neon Lounge</p>
+          </div>
+
+          <!-- 1. 玩家暱稱輸入 (優先) -->
+          <div class="settings-group">
+            <h3>1. 輸入你的暱稱</h3>
+            <input type="text" id="player-nickname-input" placeholder="請輸入暱稱..." class="nickname-field" maxlength="12" value="玩家1" style="width: 100%; padding: 14px 18px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 12px; color: #fff; font-size: 1rem; outline: none; transition: var(--transition-smooth); text-align: center;">
+          </div>
+
+          <!-- 2. 模式切換 -->
+          <div class="settings-group">
+            <h3>2. 選擇遊戲模式</h3>
+            <div class="mode-toggles" style="display: flex; gap: 10px; margin-top: 5px;">
+              <button id="mode-single-btn" class="btn btn-outline active-mode" style="flex: 1; height: 50px; font-weight: 700;" type="button">單人模式 (打電腦)</button>
+              <button id="mode-multi-btn" class="btn btn-outline" style="flex: 1; height: 50px; font-weight: 700;" type="button">多人連線 (與好友)</button>
+            </div>
+          </div>
+
+          <!-- 3a. 單人模式設定區 -->
+          <div id="single-player-settings" class="settings-group mode-settings-panel">
+            <h3>3. 單人遊戲設定</h3>
+            <div class="rule-options" style="margin-bottom: 20px;">
+              <label class="rule-option active" id="rule-wild-label">
+                <input type="radio" name="game-rule" value="wild" checked>
+                <div class="option-content">
+                  <span class="title">標準酒吧規則 (1 點為變子)</span>
+                  <span class="desc">「1」可以代表任何點數。但若有人喊過「1」，該局「1」即失效，只能當作「1」。</span>
+                </div>
+              </label>
+              <label class="rule-option" id="rule-simple-label">
+                <input type="radio" name="game-rule" value="simple">
+                <div class="option-content">
+                  <span class="title">簡單規則 (1 點不變)</span>
+                  <span class="desc">「1」就是「1」，沒有任何變子效果，簡單直覺。</span>
+                </div>
+              </label>
+            </div>
+
+            <div class="dice-count-select" style="margin-bottom: 15px; border-bottom: 1px solid rgba(255, 255, 255, 0.06); padding-bottom: 15px; border-top: none; pt: 0;">
+              <span>電腦對手人數：</span>
+              <div class="number-stepper">
+                <button type="button" id="player-count-dec-btn" class="stepper-btn">−</button>
+                <span id="player-count-val" class="stepper-val">2</span>
+                <button type="button" id="player-count-inc-btn" class="stepper-btn">+</button>
+              </div>
+            </div>
+
+            <div class="dice-count-select" style="border-top: none;">
+              <span>每人初始骰子數：</span>
+              <div class="number-stepper">
+                <button type="button" id="dice-dec-btn" class="stepper-btn">−</button>
+                <span id="initial-dice-val" class="stepper-val">5</span>
+                <button type="button" id="dice-inc-btn" class="stepper-btn">+</button>
+              </div>
+            </div>
+
+            <button id="start-game-btn" class="btn btn-primary btn-lg" style="width: 100%; margin-top: 25px;">進入酒吧開局 🎲</button>
+          </div>
+
+          <!-- 3b. 多人連線設定區 -->
+          <div id="multiplayer-settings" class="settings-group mode-settings-panel hidden" style="display: none;">
+            <h3>3. 多人連線選項</h3>
+            <div class="multiplayer-actions" style="display: flex; flex-direction: column; gap: 18px;">
+              <button id="create-room-btn" class="btn btn-gold btn-lg" style="width: 100%; height: 56px;" type="button">建立新房間 🏠</button>
+              
+              <div style="display: flex; gap: 10px; align-items: center; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 20px;">
+                <input type="text" id="join-room-input" placeholder="請輸入 4 位數房號..." class="nickname-field" maxlength="4" style="flex: 1; padding: 14px; background: rgba(0,0,0,0.25); border: 1px solid var(--border-glass); border-radius: 12px; color: #fff; font-size: 1rem; outline: none; transition: var(--transition-smooth); text-align: center;">
+                <button id="join-room-btn" class="btn btn-primary" style="height: 52px; padding: 0 24px; font-weight: 700;" type="button">加入房間 👥</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 房間連線大廳 (等待室) -->
+      <div id="room-lobby-screen" class="screen">
+        <div class="lobby-card" style="max-width: 620px;">
+          <div class="brand" style="margin-bottom: 25px;">
+            <div class="dice-icon-glow">
+              <svg viewBox="0 0 100 100" width="70" height="70">
+                <rect x="10" y="10" width="80" height="80" rx="15" fill="none" stroke="var(--accent-purple)" stroke-width="6" />
+                <circle cx="30" cy="30" r="8" fill="var(--accent-purple)" />
+                <circle cx="70" cy="70" r="8" fill="var(--accent-purple)" />
+                <circle cx="50" cy="50" r="8" fill="var(--accent-purple)" />
+              </svg>
+            </div>
+            <h1>連線房間大廳</h1>
+            <p id="lobby-room-code-display" style="color: var(--accent-gold); font-size: 1.4rem; font-weight: 900; margin-top: 8px; letter-spacing: 3px;">房號: ----</p>
+          </div>
+
+          <!-- 已加入玩家清單 -->
+          <div class="settings-group" style="text-align: left;">
+            <h3>房間成員 (<span id="lobby-player-count">0</span>/4)</h3>
+            <div id="lobby-players-list" style="display: flex; flex-direction: column; gap: 10px; margin-top: 10px; max-height: 240px; overflow-y: auto;">
+              <!-- JS 動態產生 -->
+            </div>
+            
+            <!-- 房主添加 AI 面板 -->
+            <div id="lobby-add-ai-panel" style="margin-top: 15px; border-top: 1px solid rgba(255, 255, 255, 0.06); padding-top: 15px;">
+              <span style="font-size: 0.85rem; color: var(--text-muted); display: block; margin-bottom: 8px;">添加電腦對手以補足人數：</span>
+              <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-outline btn-sm add-ai-btn" data-personality="sam" style="flex: 1; height: 38px;">🧔 山姆 (保守)</button>
+                <button type="button" class="btn btn-outline btn-sm add-ai-btn" data-personality="tina" style="flex: 1; height: 38px;">👩‍🎤 蒂娜 (平衡)</button>
+                <button type="button" class="btn btn-outline btn-sm add-ai-btn" data-personality="jack" style="flex: 1; height: 38px;">🤠 傑克 (狂野)</button>
+              </div>
+            </div>
+          </div>
+
+          <!-- 遊戲規則設定 -->
+          <div class="settings-group" style="text-align: left;">
+            <h3>連線遊戲規則</h3>
+            
+            <!-- 房主設定面板 -->
+            <div id="lobby-owner-controls" style="display: none;">
+              <div class="rule-options" style="margin-bottom: 15px; display: flex; flex-direction: column; gap: 10px;">
+                <label class="rule-option active" id="lobby-rule-wild-label">
+                  <input type="radio" name="lobby-game-rule" value="wild" checked>
+                  <div class="option-content">
+                    <span class="title">標準酒吧規則 (1 點為變子)</span>
+                  </div>
+                </label>
+                <label class="rule-option" id="lobby-rule-simple-label">
+                  <input type="radio" name="lobby-game-rule" value="simple">
+                  <div class="option-content">
+                    <span class="title">簡單規則 (1 點不變)</span>
+                  </div>
+                </label>
+              </div>
+              
+              <div class="dice-count-select">
+                <span>每人初始骰子數：</span>
+                <div class="number-stepper">
+                  <button type="button" id="lobby-dice-dec-btn" class="stepper-btn">−</button>
+                  <span id="lobby-initial-dice-val" class="stepper-val">5</span>
+                  <button type="button" id="lobby-dice-inc-btn" class="stepper-btn">+</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- 訪客唯讀面板 -->
+            <div id="lobby-guest-view">
+              <div class="read-only-setting" style="font-size: 0.95rem; display: flex; justify-content: space-between; padding: 6px 0; border-bottom: 1px solid rgba(255,255,255,0.03);">
+                <span style="color: var(--text-muted);">遊戲規則：</span>
+                <span id="lobby-guest-rule-display" style="color: var(--accent-gold); font-weight: 700;">標準模式</span>
+              </div>
+              <div class="read-only-setting" style="font-size: 0.95rem; display: flex; justify-content: space-between; padding: 6px 0; margin-top: 5px;">
+                <span style="color: var(--text-muted);">每人骰子數：</span>
+                <span id="lobby-guest-dice-display" style="color: var(--accent-gold); font-weight: 700;">5 顆</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="lobby-action-buttons" style="display: flex; gap: 15px; margin-top: 25px;">
+            <button id="leave-room-btn" class="btn btn-danger btn-lg" style="flex: 1; height: 54px;" type="button">離開房間 🚪</button>
+            <button id="lobby-start-game-btn" class="btn btn-primary btn-lg" style="flex: 2; height: 54px; display: none;" type="button">開始遊戲 🎲</button>
+            <button id="lobby-guest-wait-btn" class="btn btn-outline btn-lg disabled" style="flex: 2; height: 54px; pointer-events: none;" type="button" disabled>等待房主開始...</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 遊戲主畫面 -->
+      <div id="game-screen" class="screen">
+        <header class="game-header">
+          <div class="game-title-area">
+            <h2>吹牛大師 <span class="badge" id="rule-badge">標準模式</span></h2>
+          </div>
+          <div class="header-actions">
+            <button id="sound-toggle-btn" class="btn btn-icon" title="切換音效">
+              <span class="sound-icon-on">🔊</span>
+            </button>
+            <button id="open-rules-btn" class="btn btn-outline btn-sm">遊戲玩法</button>
+            <button id="quit-game-btn" class="btn btn-danger btn-sm">退出</button>
+          </div>
+        </header>
+
+        <div class="game-layout">
+          <!-- 左側資訊面板：包含勝率統計與機率助手 -->
+          <aside class="sidebar-panel left-panel">
+            <div class="panel-section probability-card">
+              <h3>🎲 吹牛機率助手</h3>
+              <div class="prob-content">
+                <div class="current-eval">
+                  <span class="label">當前喊注：</span>
+                  <span id="eval-bid-display" class="val">無</span>
+                </div>
+                <div class="prob-stat">
+                  <div class="circular-progress-container">
+                    <svg viewBox="0 0 100 100" class="circular-progress">
+                      <circle cx="50" cy="50" r="40" class="bg-circle" />
+                      <circle cx="50" cy="50" r="40" class="fg-circle" id="prob-ring" />
+                    </svg>
+                    <div class="inner-value"><span id="prob-percentage">0</span>%</div>
+                  </div>
+                  <div class="prob-text">
+                    <span class="prob-label">成立機率</span>
+                    <p id="prob-explanation">等待有人喊注...</p>
+                  </div>
+                </div>
+                <div class="your-dice-analysis">
+                  <span class="label">你的骰子：</span>
+                  <div class="mini-dice-list" id="my-mini-dice">
+                    <!-- JS 動態產生 -->
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="panel-section history-card">
+              <h3>📜 賽事記錄與對話</h3>
+              <div class="chat-log" id="game-chat-log">
+                <div class="chat-msg system">歡迎來到霓虹酒吧！請點擊「搖骰」開始第一局。</div>
+              </div>
+            </div>
+          </aside>
+
+          <!-- 中間核心：圓桌與玩家座次 -->
+          <main class="game-table-container">
+            <div class="neon-table">
+              <div class="table-inner">
+                <!-- 桌面中心資訊 -->
+                <div class="table-center-info">
+                  <div id="table-status-label" class="status-label">準備搖骰</div>
+                  <div id="current-bid-panel" class="current-bid-panel hidden">
+                    <div class="bid-title">當前最高喊注</div>
+                    <div class="bid-display">
+                      <span id="active-bid-qty" class="qty">0</span>
+                      <span class="times">個</span>
+                      <span id="active-bid-face" class="face-icon">⚄</span>
+                    </div>
+                    <div class="bidder-name" id="active-bidder-name">無</div>
+                  </div>
+                  <button id="roll-dice-btn" class="btn btn-gold btn-lg pulse">搖骰！</button>
+                </div>
+
+                <!-- 玩家 2 (上方 AI - Tina) -->
+                <div class="player-seat player-top" id="seat-player-2">
+                  <div class="player-profile">
+                    <div class="avatar-ring">
+                      <div class="avatar">👩‍🎤</div>
+                      <div class="dice-count-badge" id="badge-p2">5</div>
+                    </div>
+                    <span class="player-name">榮耀蒂娜</span>
+                  </div>
+                  <div class="cup-area">
+                    <div class="cup" id="cup-p2">🏺</div>
+                    <div class="hidden-dice" id="dice-p2"></div>
+                  </div>
+                  <div class="speech-bubble" id="speech-p2">準備好了。</div>
+                </div>
+
+                <!-- 玩家 1 (左方 AI - Sam) -->
+                <div class="player-seat player-left" id="seat-player-1">
+                  <div class="player-profile">
+                    <div class="avatar-ring">
+                      <div class="avatar">🧔</div>
+                      <div class="dice-count-badge" id="badge-p1">5</div>
+                    </div>
+                    <span class="player-name">巴曼山姆</span>
+                  </div>
+                  <div class="cup-area">
+                    <div class="cup" id="cup-p1">🏺</div>
+                    <div class="hidden-dice" id="dice-p1"></div>
+                  </div>
+                  <div class="speech-bubble" id="speech-p1">今天手氣不錯。</div>
+                </div>
+
+                <!-- 玩家 3 (右方 AI - Jack) -->
+                <div class="player-seat player-right" id="seat-player-3">
+                  <div class="player-profile">
+                    <div class="avatar-ring">
+                      <div class="avatar">🤠</div>
+                      <div class="dice-count-badge" id="badge-p3">5</div>
+                    </div>
+                    <span class="player-name">賭徒傑克</span>
+                  </div>
+                  <div class="cup-area">
+                    <div class="cup" id="cup-p3">🏺</div>
+                    <div class="hidden-dice" id="dice-p3"></div>
+                  </div>
+                  <div class="speech-bubble" id="speech-p3">別想騙過我！</div>
+                </div>
+
+                <!-- 玩家 0 (下方人類玩家 - You) -->
+                <div class="player-seat player-bottom active-turn" id="seat-player-0">
+                  <div class="player-profile">
+                    <div class="avatar-ring">
+                      <div class="avatar">⚡</div>
+                      <div class="dice-count-badge" id="badge-p0">5</div>
+                    </div>
+                    <span class="player-name">你 (玩家)</span>
+                  </div>
+                  <div class="cup-area">
+                    <div class="cup" id="cup-p0">🏺</div>
+                    <div class="hidden-dice" id="dice-p0">
+                      <!-- 玩家骰子實體 -->
+                    </div>
+                  </div>
+                  <div class="speech-bubble" id="speech-p0">輪到我了。</div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- 玩家本局點數 (位於操作面版上方) -->
+            <div id="table-my-hand-panel" class="table-my-hand-panel hidden">
+              <span class="hand-title">你的點數</span>
+              <div class="hand-dice" id="table-my-hand-dice"></div>
+            </div>
+
+            <!-- 玩家操作控制面板 (懸浮在底部) -->
+            <div id="player-action-panel" class="action-panel disabled">
+              <div class="action-panel-inner">
+                <div class="bid-controllers">
+                  <!-- 數量選擇器 -->
+                  <div class="controller-group">
+                    <span class="label">數量</span>
+                    <div class="stepper">
+                      <button id="bid-qty-dec" class="control-btn" type="button">−</button>
+                      <input id="bid-qty-input" class="control-input" type="number" value="2" min="2" max="20" readonly>
+                      <button id="bid-qty-inc" class="control-btn" type="button">+</button>
+                    </div>
+                  </div>
+
+                  <!-- 點數選擇器 -->
+                  <div class="controller-group">
+                    <span class="label">點數</span>
+                    <div class="dice-face-selectors">
+                      <button class="face-btn active" data-face="2" type="button"><img src="/dice/2.jpg" class="custom-die face-2 die-white" alt="2" /></button>
+                      <button class="face-btn" data-face="3" type="button"><img src="/dice/3.jpg" class="custom-die face-3 die-white" alt="3" /></button>
+                      <button class="face-btn" data-face="4" type="button"><img src="/dice/4.jpg" class="custom-die face-4 die-white" alt="4" /></button>
+                      <button class="face-btn" data-face="5" type="button"><img src="/dice/5.jpg" class="custom-die face-5 die-white" alt="5" /></button>
+                      <button class="face-btn" data-face="6" type="button"><img src="/dice/6.jpg" class="custom-die face-6 die-white" alt="6" /></button>
+                      <button class="face-btn" data-face="1" id="btn-face-1" type="button"><img src="/dice/1.jpg" class="custom-die face-1 die-white" alt="1" /></button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="action-buttons">
+                  <button id="action-liar-btn" class="btn btn-danger btn-large">開骰 (劈) 🫵</button>
+                  <button id="action-bid-btn" class="btn btn-success btn-large">喊注 🎲</button>
+                </div>
+              </div>
+            </div>
+          </main>
+        </div>
+      </div>
+
+      <!-- 結算結果彈出框 -->
+      <div id="result-modal" class="modal">
+        <div class="modal-backdrop"></div>
+        <div class="modal-content">
+          <div class="modal-header">
+            <h2 id="result-title">開牌結算</h2>
+          </div>
+          <div class="modal-body">
+            <div class="resolution-summary" id="result-summary">
+              <!-- 顯示誰劈了誰，誰的喊注，結果如何 -->
+            </div>
+            
+            <div class="detailed-dice-reveal" id="dice-reveal-container">
+              <!-- 顯示每個玩家的骰子，並高亮符合點數的骰子 -->
+            </div>
+
+            <div class="result-stats" id="result-math-details">
+              <!-- 顯示總骰數、符合要求的骰子數 -->
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button id="next-round-btn" class="btn btn-primary">開始下一局</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- 遊戲規則彈出框 -->
+      <div id="rules-modal" class="modal">
+        <div class="modal-backdrop" id="rules-backdrop"></div>
+        <div class="modal-content rules-content">
+          <div class="modal-header">
+            <h2>吹牛遊戲規則</h2>
+            <button class="btn-close" id="close-rules-btn">×</button>
+          </div>
+          <div class="modal-body">
+            <h3>基本玩法</h3>
+            <p>每位玩家初始有 5 顆骰子。每局開始時大家搖骰，並查看自己的骰子（其他人的骰子保持蓋在杯子下）。</p>
+            
+            <h3>喊注規則</h3>
+            <ul>
+              <li>玩家輪流喊出<strong>桌上所有骰子中</strong>，某個點數的「最低數量」。例如喊「5 個 4」，代表你猜桌上所有玩家的骰子加起來，至少有 5 顆是 4 點。</li>
+              <li>下一位玩家的喊注必須比上一位更高。更高代表：
+                <ul>
+                  <li><strong>數量增加</strong>，點數不限（例如「6 個 2」高於「5 個 4」）</li>
+                  <li><strong>數量相同，但點數增加</strong>（例如「5 個 5」高於「5 個 4」）</li>
+                </ul>
+              </li>
+            </ul>
+
+            <h3>「1點」的變子規則 (標準模式)</h3>
+            <ul>
+              <li><strong>「1」是萬能牌</strong>，可以代表任何點數。如果桌上有 3 顆 4 點、2 顆 1 點，那麼 4 點的總數就是 5 顆。</li>
+              <li><strong>「1」的失效條件</strong>：如果有人主動喊注「點數 1」（例如「3 個 1」），則<strong>在該局剩餘的時間內，「1」失去萬能牌效果</strong>，只能代表「1點」。</li>
+            </ul>
+
+            <h3>開牌與輸贏</h3>
+            <ul>
+              <li>如果你認為上一位玩家在吹牛（桌上實際沒有那麼多顆他喊的點數），你可以選擇<strong>「開骰 (劈)」</strong>。</li>
+              <li>開牌後所有人揭開骰盅。計算全場該點數的總和（包含萬能的 1 點，除非 1 點已失效）：
+                <ul>
+                  <li>若<strong>實際數量 ≧ 喊注數量</strong>：喊注者贏，開牌者輸。</li>
+                  <li>若<strong>實際數量 ＜ 喊注數量</strong>：開牌者贏，喊注者輸。</li>
+                </ul>
+              </li>
+              <li>輸家會<strong>失去 1 顆骰子</strong>。</li>
+              <li>當玩家失去所有骰子（0 顆）時被淘汰，最後留在場上的玩家獲勝！</li>
+            </ul>
+          </div>
+        </div>
+      </div>
+
+    </div>
+    <script type="module" src="/src/main.js"></script>
+  </body>
+</html>

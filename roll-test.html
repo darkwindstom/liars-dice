@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="zh-TW">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>3D 骰子滾動動畫展示 (Vibe Coding)</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;600;800&family=Noto+Sans+TC:wght@400;700&display=swap" rel="stylesheet">
+  <style>
+    :root {
+      --bg-dark: #090912;
+      --panel-glass: rgba(17, 19, 40, 0.75);
+      --border-glass: rgba(255, 255, 255, 0.08);
+      --accent-gold: #f59e0b;
+      --accent-purple: #8b5cf6;
+      --text-light: #f3f4f6;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background: radial-gradient(circle at center, #1b163d 0%, var(--bg-dark) 100%);
+      color: var(--text-light);
+      font-family: 'Outfit', 'Noto Sans TC', sans-serif;
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 20px;
+      overflow-x: hidden;
+    }
+
+    /* 標題區域 */
+    header {
+      text-align: center;
+      margin-bottom: 40px;
+    }
+
+    h1 {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: linear-gradient(135deg, var(--accent-gold), #ec4899, var(--accent-purple));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 10px;
+      text-shadow: 0 0 30px rgba(139, 92, 246, 0.3);
+    }
+
+    p.subtitle {
+      color: rgba(255, 255, 255, 0.6);
+      font-size: 1rem;
+      letter-spacing: 1px;
+    }
+
+    /* 主面板 */
+    .container {
+      width: 100%;
+      max-width: 750px;
+      background: var(--panel-glass);
+      border: 1px solid var(--border-glass);
+      border-radius: 24px;
+      padding: 30px;
+      backdrop-filter: blur(20px);
+      box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5), inset 0 1px 0 rgba(255, 255, 255, 0.05);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 30px;
+    }
+
+    /* 控制列 */
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 20px;
+      width: 100%;
+    }
+
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      background: rgba(0, 0, 0, 0.2);
+      padding: 8px 16px;
+      border-radius: 12px;
+      border: 1px solid var(--border-glass);
+    }
+
+    label {
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: rgba(255, 255, 255, 0.8);
+    }
+
+    select {
+      background: #0f1020;
+      color: #fff;
+      border: 1px solid var(--border-glass);
+      padding: 6px 12px;
+      border-radius: 8px;
+      font-size: 1rem;
+      outline: none;
+      cursor: pointer;
+    }
+
+    /* 搖骰按鈕 */
+    .btn-roll {
+      background: linear-gradient(135deg, var(--accent-gold), #d97706);
+      color: #000;
+      font-weight: 700;
+      border: none;
+      padding: 12px 30px;
+      border-radius: 12px;
+      font-size: 1.1rem;
+      cursor: pointer;
+      box-shadow: 0 0 15px rgba(245, 158, 11, 0.4), inset 0 1px 0 rgba(255, 255, 255, 0.2);
+      transition: all 0.2s ease;
+      letter-spacing: 1px;
+    }
+
+    .btn-roll:hover {
+      transform: translateY(-2px);
+      box-shadow: 0 0 25px rgba(245, 158, 11, 0.6);
+    }
+
+    .btn-roll:active {
+      transform: translateY(1px);
+    }
+
+    /* 骰子展示板 */
+    .dice-board {
+      width: 100%;
+      min-height: 220px;
+      background: radial-gradient(circle, rgba(17, 12, 46, 0.5) 0%, rgba(5, 5, 10, 0.7) 100%);
+      border: 1px dashed rgba(255, 255, 255, 0.1);
+      border-radius: 16px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: center;
+      gap: 40px;
+      padding: 30px;
+    }
+
+    /* 3D 視界 (Scene) */
+    .dice-scene {
+      width: 80px;
+      height: 80px;
+      perspective: 400px; /* 3D 視角景深 */
+    }
+
+    /* 3D 骰子本體 (Cube) */
+    .dice-cube {
+      width: 100%;
+      height: 100%;
+      position: relative;
+      transform-style: preserve-3d;
+      transition: transform 1.5s cubic-bezier(0.2, 0.85, 0.25, 1);
+      transform: rotateX(0deg) rotateY(0deg);
+    }
+
+    /* 骰子面 (Faces) */
+    .dice-face {
+      position: absolute;
+      width: 80px;
+      height: 80px;
+      background-size: cover;
+      background-position: center;
+      border-radius: 14px;
+      border: 1px solid rgba(255, 255, 255, 0.1);
+      box-shadow: inset 0 0 10px rgba(0, 0, 0, 0.25), 0 4px 10px rgba(0, 0, 0, 0.3);
+      backface-visibility: visible;
+    }
+
+    /* 3D 立方體拼裝 */
+    .face-1 { transform: rotateY(0deg) translateZ(40px); }
+    .face-2 { transform: rotateX(-90deg) translateZ(40px); }
+    .face-3 { transform: rotateY(90deg) translateZ(40px); }
+    .face-4 { transform: rotateY(-90deg) translateZ(40px); }
+    .face-5 { transform: rotateX(90deg) translateZ(40px); }
+    .face-6 { transform: rotateY(180deg) translateZ(40px); }
+
+    /* 點數面板結果顯示 */
+    .result-display {
+      font-size: 1.2rem;
+      font-weight: 600;
+      color: var(--accent-gold);
+      height: 24px;
+      text-shadow: 0 0 10px rgba(245, 158, 11, 0.3);
+    }
+
+    footer {
+      margin-top: 30px;
+      font-size: 0.85rem;
+      color: rgba(255, 255, 255, 0.4);
+    }
+
+    footer a {
+      color: var(--accent-purple);
+      text-decoration: none;
+    }
+  </style>
+</head>
+<body>
+
+  <header>
+    <h1>3D CSS Dice Roll Demo</h1>
+    <p class="subtitle">體驗 3D CSS 旋轉動畫，利用真實骰子圖片實作效果</p>
+  </header>
+
+  <div class="container">
+    <!-- 控制器 -->
+    <div class="controls">
+      <div class="control-group">
+        <label for="dice-count">骰子數量：</label>
+        <select id="dice-count">
+          <option value="1">1 顆</option>
+          <option value="2">2 顆</option>
+          <option value="3">3 顆</option>
+          <option value="4" selected>4 顆</option>
+          <option value="5">5 顆</option>
+          <option value="6">6 顆</option>
+        </select>
+      </div>
+      <button class="btn-roll" id="roll-btn">擲骰子！🎲</button>
+    </div>
+
+    <!-- 骰子面板 -->
+    <div class="dice-board" id="dice-board">
+      <!-- 骰子會透過 JavaScript 動態生成在此處 -->
+    </div>
+
+    <!-- 點數結果顯示 -->
+    <div class="result-display" id="result-text">點擊上方按鈕開始擲骰</div>
+  </div>
+
+  <footer>
+    <p>Powered by Google Antigravity &bull; <a href="/index.html">返回吹牛遊戲</a></p>
+  </footer>
+
+  <script>
+    // Web Audio 音效產生器
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+      }
+
+      init() {
+        if (!this.ctx) {
+          this.ctx = new (window.AudioContext || window.webkitAudioContext)();
+        }
+      }
+
+      playShake() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+        const duration = 1.0;
+
+        const bufferSize = this.ctx.sampleRate * duration;
+        const buffer = this.ctx.createBuffer(1, bufferSize, this.ctx.sampleRate);
+        const data = buffer.getChannelData(0);
+        for (let i = 0; i < bufferSize; i++) {
+          data[i] = Math.random() * 2 - 1;
+        }
+
+        const noise = this.ctx.createBufferSource();
+        noise.buffer = buffer;
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'bandpass';
+        filter.frequency.setValueAtTime(600, now);
+        filter.frequency.exponentialRampToValueAtTime(1000, now + duration);
+        filter.Q.setValueAtTime(2.0, now);
+
+        const gainNode = this.ctx.createGain();
+        gainNode.gain.setValueAtTime(0, now);
+
+        let time = 0;
+        while (time < duration) {
+          const vol = 0.05 + Math.random() * 0.1;
+          gainNode.gain.linearRampToValueAtTime(vol, now + time);
+          gainNode.gain.linearRampToValueAtTime(0, now + time + 0.03);
+          time += 0.05 + Math.random() * 0.05;
+        }
+
+        noise.connect(filter);
+        filter.connect(gainNode);
+        gainNode.connect(this.ctx.destination);
+        noise.start(now);
+      }
+
+      playSlam() {
+        this.init();
+        if (!this.ctx) return;
+        const now = this.ctx.currentTime;
+
+        const osc = this.ctx.createOscillator();
+        const oscGain = this.ctx.createGain();
+        osc.frequency.setValueAtTime(120, now);
+        osc.frequency.exponentialRampToValueAtTime(20, now + 0.15);
+
+        oscGain.gain.setValueAtTime(0.3, now);
+        oscGain.gain.exponentialRampToValueAtTime(0.001, now + 0.18);
+
+        const filter = this.ctx.createBiquadFilter();
+        filter.type = 'lowpass';
+        filter.frequency.setValueAtTime(200, now);
+
+        osc.connect(filter);
+        filter.connect(oscGain);
+        oscGain.connect(this.ctx.destination);
+
+        osc.start(now);
+        osc.stop(now + 0.2);
+      }
+    }
+
+    const sound = new SoundEngine();
+
+    // DOM 元素
+    const diceBoard = document.getElementById('dice-board');
+    const rollBtn = document.getElementById('roll-btn');
+    const diceCountSelect = document.getElementById('dice-count');
+    const resultText = document.getElementById('result-text');
+
+    // 骰子各個點數朝前時，3D 立方體對應的旋轉度數
+    const faceRotations = {
+      1: { x: 0, y: 0 },
+      2: { x: 90, y: 0 },
+      3: { x: 0, y: -90 },
+      4: { x: 0, y: 90 },
+      5: { x: -90, y: 0 },
+      6: { x: 0, y: 180 }
+    };
+
+    // 建立指定數量的骰子
+    function setupDice() {
+      const count = parseInt(diceCountSelect.value);
+      diceBoard.innerHTML = '';
+      
+      for (let i = 0; i < count; i++) {
+        const scene = document.createElement('div');
+        scene.className = 'dice-scene';
+        
+        const cube = document.createElement('div');
+        cube.className = 'dice-cube';
+        cube.id = `cube-${i}`;
+        
+        // 建立 6 個面並利用本地 /dice/1.jpg 到 6.jpg 作為背景
+        for (let faceNum = 1; faceNum <= 6; faceNum++) {
+          const face = document.createElement('div');
+          face.className = `dice-face face-${faceNum}`;
+          face.style.backgroundImage = `url('/dice/${faceNum}.jpg')`;
+          cube.appendChild(face);
+        }
+        
+        scene.appendChild(cube);
+        diceBoard.appendChild(scene);
+      }
+      resultText.innerText = '準備就緒，點擊按鈕擲骰！';
+    }
+
+    // 擲骰子動作
+    function rollDice() {
+      // 播音效
+      sound.playShake();
+      
+      const count = parseInt(diceCountSelect.value);
+      const results = [];
+      
+      resultText.innerText = '骰子滾動中... 🎲';
+      rollBtn.disabled = true;
+
+      for (let i = 0; i < count; i++) {
+        const cube = document.getElementById(`cube-${i}`);
+        if (!cube) continue;
+        
+        // 產生 1 到 6 的隨機點數
+        const point = Math.floor(Math.random() * 6) + 1;
+        results.push(point);
+        
+        // 為了做出 wild 隨機滾動，隨機加上數圈 (360的倍數)
+        const rotationsX = (Math.floor(Math.random() * 4) + 4) * 360; // 4到7圈
+        const rotationsY = (Math.floor(Math.random() * 4) + 4) * 360; // 4到7圈
+        
+        // 計算最終貼合的面
+        const targetRot = faceRotations[point];
+        const finalX = rotationsX + targetRot.x;
+        const finalY = rotationsY + targetRot.y;
+        
+        // 套用隨機的 Z 軸旋轉以顯得更自然
+        const finalZ = (Math.floor(Math.random() * 3) - 1) * 90; // -90, 0, 90 度
+        
+        // 取消 transition 並重設位置以防累加角度過大，並強制瀏覽器重繪 (reflow)
+        cube.style.transition = 'none';
+        cube.style.transform = 'rotateX(0deg) rotateY(0deg) rotateZ(0deg)';
+        cube.offsetHeight; // trigger reflow
+        
+        // 開始進行 3D 動畫旋轉
+        cube.style.transition = 'transform 1.5s cubic-bezier(0.2, 0.85, 0.25, 1)';
+        cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg) rotateZ(${finalZ}deg)`;
+      }
+
+      // 等待 1.5 秒動畫完成
+      setTimeout(() => {
+        sound.playSlam();
+        rollBtn.disabled = false;
+        
+        // 顯示結果
+        resultText.innerText = `投擲結果：${results.join(', ')} 點！`;
+      }, 1500);
+    }
+
+    // 事件監聽
+    diceCountSelect.addEventListener('change', setupDice);
+    rollBtn.addEventListener('click', () => {
+      // 確保使用者互動後可以播放 Web Audio
+      sound.init();
+      rollDice();
+    });
+
+    // 初始載入
+    setupDice();
+  </script>
+</body>
+</html>

@@ -172,6 +172,7 @@
       position: absolute;
       width: 80px;
       height: 80px;
+      background-color: #ffffff;
       background-size: cover;
       background-position: center;
       border-radius: 14px;
@@ -355,11 +356,11 @@
         cube.className = 'dice-cube';
         cube.id = `cube-${i}`;
         
-        // 建立 6 個面並利用本地 /dice/1.jpg 到 6.jpg 作為背景
+        // 建立 6 個面並利用本地 image/1.jpg 到 6.jpg 作為背景
         for (let faceNum = 1; faceNum <= 6; faceNum++) {
           const face = document.createElement('div');
           face.className = `dice-face face-${faceNum}`;
-          face.style.backgroundImage = `url('/dice/${faceNum}.jpg')`;
+          face.style.backgroundImage = `url('image/${faceNum}.jpg')`;
           cube.appendChild(face);
         }
         

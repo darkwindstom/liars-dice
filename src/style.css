@@ -1736,4 +1736,62 @@ body {
   margin: 0 4px;
 }
 
+/* ==========================================
+   3D DICE SPINNING ANIMATION STYLES
+   ========================================== */
+/* 3D 視界 (Scene) - 使用 --dice-size 進行動態縮放 */
+.dice-scene {
+  --dice-size: 40px; /* 預設為玩家手牌大小 */
+  width: var(--dice-size);
+  height: var(--dice-size);
+  perspective: 300px; /* 3D 視角景深 */
+  display: inline-block;
+  vertical-align: middle;
+  margin: 0 4px;
+}
+
+/* 3D 骰子立方體本體 (Cube) */
+.dice-cube {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  transform-style: preserve-3d;
+  transition: transform 1.5s cubic-bezier(0.2, 0.85, 0.25, 1);
+  transform: rotateX(0deg) rotateY(0deg) rotateZ(0deg);
+}
+
+/* 骰子六個面 (Faces) */
+.dice-face {
+  position: absolute;
+  width: var(--dice-size);
+  height: var(--dice-size);
+  background-color: #ffffff;
+  background-size: cover;
+  background-position: center;
+  border-radius: calc(var(--dice-size) * 0.18); /* 配合大小的圓角 */
+  border: 1px solid rgba(0, 0, 0, 0.1);
+  box-shadow: inset 0 0 calc(var(--dice-size) * 0.15) rgba(0, 0, 0, 0.2), 0 2px 4px rgba(0, 0, 0, 0.25);
+  backface-visibility: visible;
+}
+
+/* 3D 立方體拼裝 - 使用 calc 動態定位 Z 軸深度 */
+.dice-face.face-1 { transform: rotateY(0deg) translateZ(calc(var(--dice-size) / 2)); }
+.dice-face.face-2 { transform: rotateX(-90deg) translateZ(calc(var(--dice-size) / 2)); }
+.dice-face.face-3 { transform: rotateY(90deg) translateZ(calc(var(--dice-size) / 2)); }
+.dice-face.face-4 { transform: rotateY(-90deg) translateZ(calc(var(--dice-size) / 2)); }
+.dice-face.face-5 { transform: rotateX(90deg) translateZ(calc(var(--dice-size) / 2)); }
+.dice-face.face-6 { transform: rotateY(180deg) translateZ(calc(var(--dice-size) / 2)); }
+
+/* 金色高亮效果 - 用於挑戰結算時符合叫注點數的骰子 */
+.dice-scene.highlight .dice-face {
+  box-shadow: inset 0 0 calc(var(--dice-size) * 0.15) rgba(0, 0, 0, 0.2), 0 0 10px var(--accent-gold);
+  border: 1.5px solid var(--accent-gold);
+}
+
+/* 針對結算彈窗中的 3D 骰子進行縮小 (30px) */
+#dice-reveal-container .dice-scene {
+  --dice-size: 30px;
+}
+
+
 

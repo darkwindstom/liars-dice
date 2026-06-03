@@ -292,6 +292,7 @@ class LiarDiceGame {
     this.gameState = 'LOBBY'; // LOBBY, ROLLING, BIDDING, REVEALED, GAMEOVER
     
     this.selectedFace = 2; // Default user bid face value selection
+    this.shouldAnimateHand = false; // Flag to animate player's 3D hand dice on round starts
 
     // Multiplayer connection and parameters
     this.isMultiplayer = false;
@@ -351,6 +352,8 @@ class LiarDiceGame {
       this.gameState = 'ROLLING';
       this.showScreen('game-screen');
       this.resetTableState();
+      
+      this.shouldAnimateHand = true; // Enable hand 3D roll animation on round start
       
       // Play shake sounds
       audio.playShake(1.2);
@@ -627,7 +630,7 @@ class LiarDiceGame {
 
     // Render my dice hand on the left panel
     const p0 = this.players[0];
-    if (p0.isActive && !p0.isEliminated && room.gameState !== 'LOBBY') {
+    if (p0.isActive && !p0.isEliminated && room.gameState !== 'LOBBY' && room.gameState !== 'ROLLING') {
       const tableHandPanel = document.getElementById('table-my-hand-panel');
       if (tableHandPanel) {
         tableHandPanel.classList.remove('hidden');
@@ -636,10 +639,8 @@ class LiarDiceGame {
       const miniDice = document.getElementById('my-mini-dice');
       
       if (tableHandDice && p0.dice && p0.dice.length > 0) {
-        tableHandDice.innerHTML = '';
-        p0.dice.forEach(val => {
-          tableHandDice.innerHTML += this.getDiceHTML(val, false, 'die');
-        });
+        this.render3DDice(tableHandDice, p0.dice, false, null, this.shouldAnimateHand);
+        this.shouldAnimateHand = false; // Reset flag after rendering
       }
 
       if (miniDice && p0.dice && p0.dice.length > 0) {
@@ -691,25 +692,31 @@ class LiarDiceGame {
 
     this.players.filter(p => p.isActive).forEach(p => {
       const relativeIndex = this.players.findIndex(pl => pl.id === p.id);
-      let pDiceHTML = '';
-      if (!p.isEliminated) {
-        p.dice.forEach(val => {
-          const isMatch = (val === bidFace) || (this.ruleMode === 'wild' && this.wild1sActive && val === 1);
-          const extraClass = 'die' + (isMatch ? ' highlight' : '');
-          pDiceHTML += this.getDiceHTML(val, relativeIndex !== 0, extraClass);
-        });
-      } else {
-        pDiceHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">已被淘汰</span>`;
-      }
-
+      
       const row = document.createElement('div');
       row.className = `reveal-row ${p.isAI ? 'ai-p' + relativeIndex : 'player'} ${p.isEliminated ? 'eliminated' : ''}`;
-      row.innerHTML = `
-        <span class="name">${p.name}</span>
-        <div class="dice">${pDiceHTML}</div>
-        <span style="font-weight:700;">${p.isEliminated ? '-' : p.dice.filter(val => val === bidFace || (this.ruleMode === 'wild' && this.wild1sActive && val === 1)).length + ' 個'}</span>
-      `;
+      
+      if (!p.isEliminated) {
+        const matchCount = p.dice.filter(val => val === bidFace || (this.ruleMode === 'wild' && this.wild1sActive && val === 1)).length;
+        row.innerHTML = `
+          <span class="name">${p.name}</span>
+          <div class="dice" id="reveal-dice-p${relativeIndex}"></div>
+          <span style="font-weight:700;">${matchCount} 個</span>
+        `;
+      } else {
+        row.innerHTML = `
+          <span class="name">${p.name}</span>
+          <div class="dice" style="font-size:0.8rem; color:var(--text-muted);">已被淘汰</div>
+          <span style="font-weight:700;">-</span>
+        `;
+      }
       revealContainer.appendChild(row);
+
+      // Render 3D dice for active players
+      if (!p.isEliminated) {
+        const pDiceContainer = document.getElementById(`reveal-dice-p${relativeIndex}`);
+        this.render3DDice(pDiceContainer, p.dice, relativeIndex !== 0, bidFace, true);
+      }
     });
 
     const resultTitle = document.getElementById('result-title');
@@ -1255,6 +1262,8 @@ class LiarDiceGame {
 
       this.logMsg('system', '🎲 所有玩家已搖好骰子！骰盅蓋定。');
 
+      this.shouldAnimateHand = true; // Set flag to animate the 3D hand dice rolling animation
+
       // Render human player's dice under cup (always visible to player 0)
       this.renderPlayer0Dice();
 
@@ -1294,10 +1303,8 @@ class LiarDiceGame {
     // Render in table left hand panel too
     const tableHandDice = document.getElementById('table-my-hand-dice');
     if (tableHandDice) {
-      tableHandDice.innerHTML = '';
-      p0.dice.forEach(val => {
-        tableHandDice.innerHTML += this.getDiceHTML(val, false, 'die');
-      });
+      this.render3DDice(tableHandDice, p0.dice, false, null, this.shouldAnimateHand);
+      this.shouldAnimateHand = false; // Reset flag after rendering
     }
   }
 
@@ -1498,32 +1505,39 @@ class LiarDiceGame {
 
     this.players.forEach(p => {
       if (!p.isActive) return; // Skip inactive players entirely
-      let pCount = 0;
-      let pDiceHTML = '';
+      
+      const row = document.createElement('div');
+      row.className = `reveal-row ${p.isAI ? 'ai-p' + p.id : 'player'} ${p.isEliminated ? 'eliminated' : ''}`;
       
       if (!p.isEliminated) {
+        let pCount = 0;
         p.dice.forEach(val => {
           const isMatch = (val === bidFace) || (this.ruleMode === 'wild' && this.wild1sActive && val === 1);
           if (isMatch) {
             pCount++;
             totalMatching++;
           }
-          const extraClass = 'die' + (isMatch ? ' highlight' : '');
-          pDiceHTML += this.getDiceHTML(val, p.id !== 0, extraClass);
         });
+        
+        row.innerHTML = `
+          <span class="name">${p.name}</span>
+          <div class="dice" id="reveal-dice-p${p.id}"></div>
+          <span style="font-weight:700;">${pCount} 個</span>
+        `;
       } else {
-        pDiceHTML = `<span style="font-size:0.8rem; color:var(--text-muted);">已被淘汰</span>`;
+        row.innerHTML = `
+          <span class="name">${p.name}</span>
+          <div class="dice" style="font-size:0.8rem; color:var(--text-muted);">已被淘汰</div>
+          <span style="font-weight:700;">-</span>
+        `;
       }
-
-      // Add to modal reveal table row
-      const row = document.createElement('div');
-      row.className = `reveal-row ${p.isAI ? 'ai-p' + p.id : 'player'} ${p.isEliminated ? 'eliminated' : ''}`;
-      row.innerHTML = `
-        <span class="name">${p.name}</span>
-        <div class="dice">${pDiceHTML}</div>
-        <span style="font-weight:700;">${p.isEliminated ? '-' : pCount + ' 個'}</span>
-      `;
       revealContainer.appendChild(row);
+
+      // Render 3D dice for active players
+      if (!p.isEliminated) {
+        const pDiceContainer = document.getElementById(`reveal-dice-p${p.id}`);
+        this.render3DDice(pDiceContainer, p.dice, p.id !== 0, bidFace, true);
+      }
     });
 
     const isBidSuccessful = totalMatching >= bidQty;
@@ -1798,6 +1812,78 @@ class LiarDiceGame {
   getDiceHTML(face, isBlack = false, extraClasses = '') {
     const themeClass = isBlack ? 'die-black' : 'die-white';
     return `<img src="/dice/${face}.jpg" class="custom-die face-${face} ${themeClass} ${extraClasses}" alt="Dice ${face}" />`;
+  }
+
+  render3DDice(container, diceArray, isBlack = false, highlightFace = null, shouldAnimate = false) {
+    if (!container) return;
+    container.innerHTML = '';
+
+    const themeClass = isBlack ? 'die-black' : 'die-white';
+
+    const faceRotations = {
+      1: { x: 0, y: 0 },
+      2: { x: 90, y: 0 },
+      3: { x: 0, y: -90 },
+      4: { x: 0, y: 90 },
+      5: { x: -90, y: 0 },
+      6: { x: 0, y: 180 }
+    };
+
+    diceArray.forEach((point, index) => {
+      // Determine highlight status (match bidFace or wild 1s)
+      const isHighlighted = highlightFace !== null && (point === highlightFace || (this.ruleMode === 'wild' && this.wild1sActive && point === 1));
+      const highlightClass = isHighlighted ? 'highlight' : '';
+
+      const scene = document.createElement('div');
+      scene.className = `dice-scene ${highlightClass}`;
+
+      const cube = document.createElement('div');
+      cube.className = 'dice-cube';
+
+      // Assemble 6 faces
+      for (let faceNum = 1; faceNum <= 6; faceNum++) {
+        const face = document.createElement('div');
+        face.className = `dice-face face-${faceNum} ${themeClass}`;
+        face.style.backgroundImage = `url('/dice/${faceNum}.jpg')`;
+        cube.appendChild(face);
+      }
+
+      scene.appendChild(cube);
+      container.appendChild(scene);
+
+      // Determine target rotation values
+      const targetRot = faceRotations[point] || { x: 0, y: 0 };
+
+      if (shouldAnimate) {
+        // Roll animation: add multiple spins
+        const rotationsX = (Math.floor(Math.random() * 4) + 4) * 360; // 4 to 7 full spins
+        const rotationsY = (Math.floor(Math.random() * 4) + 4) * 360;
+        const finalX = rotationsX + targetRot.x;
+        const finalY = rotationsY + targetRot.y;
+        
+        // Tilt the entire 3D scene around the Z-axis by a subtle random amount (e.g. -20, 0, 20 degrees)
+        // to prevent 3D rotation order interference on the cube's internal X-Y axes.
+        const finalZ = (Math.floor(Math.random() * 3) - 1) * 20;
+
+        // Reset transformation first to make sure transitions play from 0 degrees
+        cube.style.transition = 'none';
+        cube.style.transform = 'rotateX(0deg) rotateY(0deg)';
+        scene.style.transform = 'rotateZ(0deg)';
+        cube.offsetHeight; // trigger browser reflow
+
+        // Apply transition and final coordinates after a micro-task timeout
+        setTimeout(() => {
+          cube.style.transition = 'transform 1.5s cubic-bezier(0.2, 0.85, 0.25, 1)';
+          cube.style.transform = `rotateX(${finalX}deg) rotateY(${finalY}deg)`;
+          scene.style.transform = `rotateZ(${finalZ}deg)`;
+        }, 10);
+      } else {
+        // Static positioning: display immediately without animation transition
+        cube.style.transition = 'none';
+        cube.style.transform = `rotateX(${targetRot.x}deg) rotateY(${targetRot.y}deg)`;
+        scene.style.transform = 'none';
+      }
+    });
   }
 
   getDiceUnicode(face) {
